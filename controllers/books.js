@@ -1,4 +1,3 @@
-import { ObjectId } from 'mongodb';
 import { getDb } from '../src/db/connect.js';
 
 const COLLECTION = 'books';
@@ -13,18 +12,14 @@ export const getAllBooks = async (req, res) => {
   }
 };
 
-// GET single book
+// GET single book by custom id
 export const getBookById = async (req, res) => {
   try {
     const { id } = req.params;
 
-    if (!ObjectId.isValid(id)) {
-      return res.status(400).json({ error: 'Invalid book ID' });
-    }
-
     const book = await getDb()
       .collection(COLLECTION)
-      .findOne({ _id: new ObjectId(id) });
+      .findOne({ id: id });
 
     if (!book) {
       return res.status(404).json({ error: 'Book not found' });
@@ -39,12 +34,12 @@ export const getBookById = async (req, res) => {
 // POST create
 export const createBook = async (req, res) => {
   try {
-    const { title, author, year, genre } = req.body;
-    if (!title || !author || !year || !genre) {
+    const { id, title, author, year, genre } = req.body;
+    if (!id || !title || !author || !year || !genre) {
       return res.status(400).json({ error: 'All fields are required' });
     }
     const result = await getDb().collection(COLLECTION).insertOne({
-      title, author, year, genre,
+      id, title, author, year, genre,
     });
     res.status(201).json({ _id: result.insertedId });
   } catch (err) {
@@ -56,14 +51,11 @@ export const createBook = async (req, res) => {
 export const updateBook = async (req, res) => {
   try {
     const { id } = req.params;
-    if (!ObjectId.isValid(id)) {
-      return res.status(400).json({ error: 'Invalid book ID' });
-    }
     const { title, author, year, genre } = req.body;
     const result = await getDb()
       .collection(COLLECTION)
       .updateOne(
-        { _id: new ObjectId(id) },
+        { id: id },
         { $set: { title, author, year, genre } }
       );
     if (result.matchedCount === 0) {
@@ -79,12 +71,9 @@ export const updateBook = async (req, res) => {
 export const deleteBook = async (req, res) => {
   try {
     const { id } = req.params;
-    if (!ObjectId.isValid(id)) {
-      return res.status(400).json({ error: 'Invalid book ID' });
-    }
     const result = await getDb()
       .collection(COLLECTION)
-      .deleteOne({ _id: new ObjectId(id) });
+      .deleteOne({ id: id });
     if (result.deletedCount === 0) {
       return res.status(404).json({ error: 'Book not found' });
     }
