@@ -1,0 +1,17 @@
+[
+  {
+    "id": "a1",
+    "name": "George Orwell",
+    "birthYear": 1903
+  },
+  {
+    "id": "a2",
+    "name": "Jane Austen",
+    "birthYear": 1775
+  },
+  {
+    "id": "a3",
+    "name": "Chinua Achebe",
+    "birthYear": 1930
+  }
+]

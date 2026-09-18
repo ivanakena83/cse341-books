@@ -1,18 +1,27 @@
 import { getDb } from '../src/db/connect.js';
 
 const COLLECTION = 'books';
+const AUTHORS_COLLECTION = 'authors';
 
-// GET all books
+const requiredBookFields = (body, includeId = false) => {
+  const { id, authorId, title, publicationDate } = body;
+  return (!includeId || typeof id === 'string' && id.trim())
+    && typeof authorId === 'string' && authorId.trim()
+    && typeof title === 'string' && title.trim()
+    && typeof publicationDate === 'string' && publicationDate.trim();
+};
+
+const sendServerError = (res) => res.status(500).json({ error: 'Internal server error' });
+
 export const getAllBooks = async (req, res) => {
   try {
     const books = await getDb().collection(COLLECTION).find().toArray();
     res.status(200).json(books);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    sendServerError(res);
   }
 };
 
-// GET single book by custom id
 export const getBookById = async (req, res) => {
   try {
     const { id } = req.params;
@@ -27,47 +36,53 @@ export const getBookById = async (req, res) => {
 
     res.status(200).json(book);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    sendServerError(res);
   }
 };
 
-// POST create
 export const createBook = async (req, res) => {
   try {
-    const { id, title, author, year, genre } = req.body;
-    if (!id || !title || !author || !year || !genre) {
+    const { id, authorId, title, publicationDate } = req.body;
+    if (!requiredBookFields(req.body, true)) {
       return res.status(400).json({ error: 'All fields are required' });
     }
-    const result = await getDb().collection(COLLECTION).insertOne({
-      id, title, author, year, genre,
-    });
-    res.status(201).json({ _id: result.insertedId });
+    const db = getDb();
+    if (await db.collection(COLLECTION).findOne({ id })) {
+      return res.status(400).json({ error: 'Book id already exists' });
+    }
+    if (!await db.collection(AUTHORS_COLLECTION).findOne({ id: authorId })) {
+      return res.status(400).json({ error: 'Author does not exist' });
+    }
+    const book = { id, authorId, title, publicationDate };
+    await db.collection(COLLECTION).insertOne(book);
+    res.status(201).json(book);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    sendServerError(res);
   }
 };
 
-// PUT update
 export const updateBook = async (req, res) => {
   try {
     const { id } = req.params;
-    const { title, author, year, genre } = req.body;
-    const result = await getDb()
-      .collection(COLLECTION)
-      .updateOne(
-        { id: id },
-        { $set: { title, author, year, genre } }
-      );
-    if (result.matchedCount === 0) {
+    const { authorId, title, publicationDate } = req.body;
+    if (!requiredBookFields(req.body)) {
+      return res.status(400).json({ error: 'All fields are required' });
+    }
+    const db = getDb();
+    if (!await db.collection(COLLECTION).findOne({ id })) {
       return res.status(404).json({ error: 'Book not found' });
     }
-    res.sendStatus(204);
+    if (!await db.collection(AUTHORS_COLLECTION).findOne({ id: authorId })) {
+      return res.status(400).json({ error: 'Author does not exist' });
+    }
+    const updatedBook = { id, authorId, title, publicationDate };
+    await db.collection(COLLECTION).updateOne({ id }, { $set: updatedBook });
+    res.status(200).json(updatedBook);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    sendServerError(res);
   }
 };
 
-// DELETE
 export const deleteBook = async (req, res) => {
   try {
     const { id } = req.params;
@@ -77,8 +92,8 @@ export const deleteBook = async (req, res) => {
     if (result.deletedCount === 0) {
       return res.status(404).json({ error: 'Book not found' });
     }
-    res.status(200).json({ message: 'Book deleted' });
+    res.sendStatus(204);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    sendServerError(res);
   }
 };
