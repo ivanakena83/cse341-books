@@ -2,10 +2,13 @@ import { getDb } from '../src/db/connect.js';
 
 const COLLECTION = 'authors';
 
-const validAuthor = ({ id, name, birthYear }, includeId = false) =>
-  (!includeId || typeof id === 'string' && id.trim())
-  && typeof name === 'string' && name.trim()
-  && typeof birthYear === 'number' && Number.isFinite(birthYear);
+const validAuthor = (body, includeId = false) => {
+  if (!body || typeof body !== 'object' || Array.isArray(body)) return false;
+  const { id, name, birthYear } = body;
+  return (!includeId || typeof id === 'string' && id.trim())
+    && typeof name === 'string' && name.trim()
+    && typeof birthYear === 'number' && Number.isFinite(birthYear);
+};
 
 const sendServerError = (res) => res.status(500).json({ error: 'Internal server error' });
 
@@ -29,8 +32,8 @@ export const getAuthorById = async (req, res) => {
 
 export const createAuthor = async (req, res) => {
   try {
-    const { id, name, birthYear } = req.body;
     if (!validAuthor(req.body, true)) return res.status(400).json({ error: 'All fields are required' });
+    const { id, name, birthYear } = req.body;
     const db = getDb();
     if (await db.collection(COLLECTION).findOne({ id })) {
       return res.status(400).json({ error: 'Author id already exists' });
@@ -45,8 +48,8 @@ export const createAuthor = async (req, res) => {
 
 export const updateAuthor = async (req, res) => {
   try {
+    if (!validAuthor(req.body)) return res.status(400).json({ error: 'All fields are required' });
     const { name, birthYear } = req.body;
-    if (!validAuthor({ name, birthYear })) return res.status(400).json({ error: 'All fields are required' });
     const db = getDb();
     if (!await db.collection(COLLECTION).findOne({ id: req.params.id })) {
       return res.status(404).json({ error: 'Author not found' });

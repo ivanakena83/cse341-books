@@ -4,6 +4,7 @@ const COLLECTION = 'books';
 const AUTHORS_COLLECTION = 'authors';
 
 const requiredBookFields = (body, includeId = false) => {
+  if (!body || typeof body !== 'object' || Array.isArray(body)) return false;
   const { id, authorId, title, publicationDate } = body;
   return (!includeId || typeof id === 'string' && id.trim())
     && typeof authorId === 'string' && authorId.trim()
@@ -42,10 +43,10 @@ export const getBookById = async (req, res) => {
 
 export const createBook = async (req, res) => {
   try {
-    const { id, authorId, title, publicationDate } = req.body;
     if (!requiredBookFields(req.body, true)) {
       return res.status(400).json({ error: 'All fields are required' });
     }
+    const { id, authorId, title, publicationDate } = req.body;
     const db = getDb();
     if (await db.collection(COLLECTION).findOne({ id })) {
       return res.status(400).json({ error: 'Book id already exists' });
@@ -64,10 +65,10 @@ export const createBook = async (req, res) => {
 export const updateBook = async (req, res) => {
   try {
     const { id } = req.params;
-    const { authorId, title, publicationDate } = req.body;
     if (!requiredBookFields(req.body)) {
       return res.status(400).json({ error: 'All fields are required' });
     }
+    const { authorId, title, publicationDate } = req.body;
     const db = getDb();
     if (!await db.collection(COLLECTION).findOne({ id })) {
       return res.status(404).json({ error: 'Book not found' });

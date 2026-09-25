@@ -7,6 +7,7 @@
   "scripts": {
     "start": "node --env-file=.env server.js",
     "dev": "nodemon --env-file=.env server.js",
+    "swagger": "node scripts/generate-swagger.js",
     "test": "node --test"
   },
   "keywords": [],
